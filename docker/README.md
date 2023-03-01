@@ -117,9 +117,9 @@ df_sim_GO, df_sim_Dis, weights_GO, weights_Dis = myclass.make_sim_dfs()
 df_edge, isolated_genes, df_edge_sym, isolated_genes_sym = myclass.make_small_edgelist(num_nodes=50)
 df_convert_out_subset, positive_genes = myclass.alter_validation_df()
 # save 
-df_probs.to_csv(osp.join(outdir, "df_probs.tsv"), sep="\t", header=True, index=False)
-df_sim_GO.to_csv(osp.join(outdir, "df_sim_GO.tsv"), sep="\t", header=True, index=False)
-df_convert_out_subset.to_csv(osp.join(outdir, "df_convert_out_subset.tsv"), sep="\t", header=True, index=False)
+df_probs.to_csv(os.path.join(outdir, "df_probs.tsv"), sep="\t", header=True, index=False)
+df_sim_GO.to_csv(os.path.join(outdir, "df_sim_GO.tsv"), sep="\t", header=True, index=False)
+df_convert_out_subset.to_csv(os.path.join(outdir, "df_convert_out_subset.tsv"), sep="\t", header=True, index=False)
 exit()
 ```
 
