@@ -1,0 +1,8 @@
+Dockerfile
+.gitignore
+build
+.venv
+.git
+.github
+*.yml
+

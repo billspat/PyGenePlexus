@@ -1,3 +1,6 @@
+# ignore backend data
+.data/
+
 # Ignore vim buffer
 *.swp
 
