@@ -1,27 +1,54 @@
-FROM continuumio/miniconda3:latest
+FROM python:3.10-bullseye
+# FROM continuumio/miniconda3:latest
 
 # assumes all data needed is downloaded to the .data folder in this repo
 
 # RUN mkdir PyGenePlexus
+ARG NETWORK_NAME=*
+ENV NETWORK=${NETWORK_NAME}
+#ALL_NETWORKS = ["BioGRID", "STRING", "STRING-EXP", "GIANT-TN"]
 
-# copy all code and data
-COPY . PyGenePlexus
-# COPY geneplexus PyGenePlexus/geneplexus
-# COPY pyproject.toml PyGenePlexus
-# COPY setup.cfg PyGenePlexus
-# COPY setup.py PyGenePlexus
-# COPY tox.in PyGenePlexus
-# COPY MANIFEST.in PyGenePlexus
-# COPY test PyGenePlexus
-# COPY .data .data
-# COPY example example
 
-# RUN mkdir -p ~/.data/geneplexus && \
-RUN pip install ./PyGenePlexus && pip install -r PyGenePlexus/requirements-dev.txt
+# copy code needed, and install local package
+# COPY . PyGenePlexus
+ENV code_dir=/var/PyGenePlexus
+RUN mkdir -p ${code_dir}
+COPY geneplexus ${code_dir}/geneplexus
+COPY pyproject.toml ${code_dir}
+COPY setup.cfg ${code_dir}
+COPY setup.py ${code_dir}
+COPY tox.ini ${code_dir}
+COPY MANIFEST.in ${code_dir}
+COPY test ${code_dir}
+COPY requirements-dev.txt ${code_dir}
 
-ENV FILE_LOC=/PyGenePlexus/.data
+RUN pip install ${code_dir} && pip install -r ${code_dir}/requirements-dev.txt
 
-# COPY download_for_docker.sh .
-# RUN chmod u+x ./download_for_docker.sh && /bin/sh -c ./download_for_docker.sh
+
+# create a working folder and copy useable code in there
+ENV APPDIR=/geneplexus
+ENV FILE_LOC=${APPDIR}/.data
+
+
+WORKDIR ${APPDIR}
+
+# this copies just the data files for the network ARG
+# if none sent, use the * glob character which should copy all of them
+RUN mkdir .data
+COPY .data/*_${NETWORK_NAME}_* .data
+COPY .data/*_${NETWORK_NAME}.txt .data
+COPY .data/*_${NETWORK_NAME}.npy .data
+COPY .data/*_${NETWORK_NAME}.edg .data
+COPY .data/IDconversion* .data
+COPY .data/GSCOriginal_* .data
+
+COPY .data/NodeOrder_* .data
+COPY example example
+COPY docker/sample_run.py .
+
+
+
+
+
 
 
