@@ -66,64 +66,82 @@ which may free up enough space.
 
 This assumes the data has already been downloaded onto your computer and that Docker (or Docker desktop) is installed. 
 
-The current docker file assumes the data is in the folder `.data` in the root of this repository and will not work if it's not
-in this folder. 
+The current docker file assumes the data is in the folder `.data` in the root of this repository and will not work if it's not in this folder. 
 
 From the root directory (not the docker directory), issue this command
 
 `docker build -f docker/Dockerfile -t geneplexus:latest .
 
+## Optional: Net-specific dockerfile
+
+There is an option to build a dockerfile for just one network to keep the size manageable.  
+
+- BioGrID: \
+  `docker build --build-arg NETWORK_NAME=BioGRID -f docker/Dockerfile -t geneplexus:latest-biogrid .`
+- STRING: \
+  `docker build --build-arg NETWORK_NAME=STRING -f docker/Dockerfile -t geneplexus:latest-string .`
+
+etc.  
+
+You would then run the container with the network of interest using the tag, e.g. 
+
+`docker run -it geneplexus:latest-string python /bin/bash` (BioGRID network only).  or
+
+`docker run -it geneplexus:latest-string python /bin/bash` (STRING network only)
+
+etc.  
+
+
+
 ## Testing the Containerized PyGenePlexus
 
 Current in this early development, there is not entry point or run command.  That is forthcoming. 
 
-However, to test that PyGenePlexus and the data are working in the docker image, you can do the following: 
+You may test in two different ways by logging in with linux shell and starting python, or running the sample script. 
 
-In your terminal/shell, connect to the image with a bash shell : 
+### example script and geneset:  
+
+To test that PyGenePlexus with sample data, there is a test script (`sample_run.py`).  It uses environment variables as 
+parameters to PyGeneplexus. 
+
+- `$OUTDIR`
+- `$FEATURES`
+- `$GSC`
+
+See the PyGeneplexus documentation for valid values for these variables. 
+
+Note that network is set per image tag (see above).  but avaialble as an environment variable inside the container as `$NETWORK`
+
+Data saved in the container is lost when the container exits.  To save data, you need to [connect folder on your computer to a folder in the container](https://docs.docker.com/storage/bind-mounts/).  Howeve First you need to create/designate a folder on your computer to store the output.   You'll also need to
+grant Docker permission to write to this folder (in Docker Desktop, it's in settings/Resources/File Sharing).  
+For example I've added the /tmp folder on my computer to settings in docker desktop, and created a folder 'gp' in tmp.   (e.g. `mkdir /tmp/gp`).   You can use any folder on your computer but must add it to file sharing in Docker settings. 
+
+
+The folder inside the container can be anything, for example `/tmp/gp` In your terminal/shell, run the sample script inside docker as follows : 
 
 ```
-docker run -it geneplexus:latest /bin/bash
-# (base) root@3ceef97aee0f:/#
+docker run -v /tmp/gp:/tmp/gp -e OUTDIR=/tmp/gp geneplexus:latest-string python sample_run.py
 ```
 
-Once in the container, start python: `(base) root@3ceef97aee0f:/# python`
+Then inspect the Geneplexus output files on your computer's folder /tmp/gp
+
+To adjust the other parameters, use something similar to the following: 
 
 ```
-Python 3.10.8 (main, Nov 24 2022, 14:06:33) [GCC 11.2.0] on linux
-Type "help", "copyright", "credits" or "license" for more information.
->>>
+docker run -v /tmp/gp:/tmp/gp \
+    -e OUTDIR=/tmp/gp -e FEATURES=Adjacency -e GSC=GO \
+    geneplexus:latest-string python sample_run.py
 ```
 
-try running an example program inside python
 
-```python
-import os
-import pathlib
-import geneplexus
+### shell: 
 
-input_genes = [
-    "ARL6","BBS1","BBS10","BBS12","BBS2","BBS4","BBS5","BBS7","BBS9",
-    "CCDC28B","CEP290","KIF7","MKKS","MKS1","TRIM32","TTC8","WDPCP",
-]
+`docker run -it --rm geneplexus:latest-string`
 
-datadir = "/PyGenePlexus/.data"
-outdir = "/tmp"
-
-myclass = geneplexus.GenePlexus(datadir, "STRING", "Embedding", "DisGeNet")
-myclass.load_genes(input_genes)
-
-mdl_weights, df_probs, avgps = myclass.fit_and_predict()
-df_sim_GO, df_sim_Dis, weights_GO, weights_Dis = myclass.make_sim_dfs()
-df_edge, isolated_genes, df_edge_sym, isolated_genes_sym = myclass.make_small_edgelist(num_nodes=50)
-df_convert_out_subset, positive_genes = myclass.alter_validation_df()
-# save 
-df_probs.to_csv(os.path.join(outdir, "df_probs.tsv"), sep="\t", header=True, index=False)
-df_sim_GO.to_csv(os.path.join(outdir, "df_sim_GO.tsv"), sep="\t", header=True, index=False)
-df_convert_out_subset.to_csv(os.path.join(outdir, "df_convert_out_subset.tsv"), sep="\t", header=True, index=False)
-exit()
-```
-
-then check the contents of the files in the `\tmp` folder.  
-
-
-
+   - replace the tag 'latest-string' with the tag for the network you want to use
+   - this will start a Python console that you can `import geneplexus` and use as you.   
+   - this is really valuable just for testing
+   - the `--rm` option above is to delete the container after exiting, otherwise Docker will 
+      keep many anonymous containers around. 
+   - type `exit()` at the Python prompt to exit and delete the container (but not the image) 
+   - to save outputs, you'll need to mount a folder as described above
