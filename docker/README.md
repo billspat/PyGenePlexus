@@ -75,22 +75,33 @@ From the root directory (not the docker directory), issue this command
 ## Optional: Net-specific dockerfile
 
 There is an option to build a dockerfile for just one network to keep the size manageable.  
+In General, 
 
-- BioGrID: \
-  `docker build --build-arg NETWORK_NAME=BioGRID -f docker/Dockerfile -t geneplexus:latest-biogrid .`
-- STRING: \
-  `docker build --build-arg NETWORK_NAME=STRING -f docker/Dockerfile -t geneplexus:latest-string .`
+```bash
+NET=BioGRID
+docker build --build-arg NETWORK_NAME=$NET -f docker/Dockerfile -t geneplexus:latest-$NET .
+```
 
+replace `BioGRID` above with a valid newtork name ( see )
 etc.  
 
 You would then run the container with the network of interest using the tag, e.g. 
 
-`docker run -it geneplexus:latest-string python /bin/bash` (BioGRID network only).  or
-
-`docker run -it geneplexus:latest-string python /bin/bash` (STRING network only)
+`docker run -it geneplexus:latest-STRING python /bin/bash` (STRING network only).
 
 etc.  
 
+To build docker images for all networks supported by PyGenePlexus, use the following shell script.  It assumes that you have a valid python along with PyGenePlexus installed.    Note this will take a while to copy the large backend data into the docker image
+
+```zsh
+for NET in `python -c "import geneplexus; print(' '.join(geneplexus.config.ALL_NETWORKS))"`
+do
+    buildcmd="docker build --build-arg NETWORK_NAME=$NET -f docker/Dockerfile -t geneplexus:latest-$NET ."
+    echo $buildcmd
+done
+```
+
+See `build_net_images.sh` in the `/Docker` folder
 
 
 ## Testing the Containerized PyGenePlexus
