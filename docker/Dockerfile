@@ -22,7 +22,8 @@ COPY MANIFEST.in ${code_dir}
 COPY test ${code_dir}
 COPY requirements-dev.txt ${code_dir}
 
-RUN pip install ${code_dir} && pip install -r ${code_dir}/requirements-dev.txt
+RUN pip install ${code_dir} 
+# && pip install -r ${code_dir}/requirements-dev.txt
 
 
 # create a working folder and copy useable code in there
@@ -46,9 +47,4 @@ COPY .data/NodeOrder_* .data
 COPY example example
 COPY docker/sample_run.py .
 
-
-
-
-
-
-
+ENTRYPOINT ["python", "sample_run.py"]
