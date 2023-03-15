@@ -72,15 +72,34 @@ From the root directory (not the docker directory), issue this command
 
 `docker build -f docker/Dockerfile -t geneplexus:latest .
 
+Note if you are on a new "Apple Silicon" Mac or other ARM based system, using default build will create an 'arm' 
+architecture image which may not run on the cloud or other PCs.    For use on the machine on which you build this is fine.  However, 
+if you want to build images for use by others or use with cloud services, you may need to build multiple 'platforms.'
+
+This command may build those and push to docker hub (requires an account on dockerhub): 
+
+```
+DOCKERUSER=<your dockerhub user account>
+docker login -u $DOCKERUSER
+export NET=BioGRID # set the network you want to use
+docker buildx build  --platform linux/amd64,linux/arm64/v8  --build-arg NETWORK_NAME=$NET -f docker/Dockerfile -t $DOCKERUSER/geneplexus:$NET --push .
+```
+
+See https://docs.docker.com/build/building/multi-platform/ for building an image that can run on both Apple CPUs and the majority of other Intel-based computers when using an Apple CPU mac.   You may need to create a new build node and then use something like this to create and push
+
+
 ## Optional: Net-specific dockerfile
 
 There is an option to build a dockerfile for just one network to keep the size manageable.  
 In General, 
 
 ```bash
-NET=BioGRID
-docker build --build-arg NETWORK_NAME=$NET -f docker/Dockerfile -t geneplexus:latest-$NET .
+NET=BioGRIDl; docker build --build-arg NETWORK_NAME=$NET -f docker/Dockerfile -t geneplexus:latest-$NET .
 ```
+
+*NOTE: if the value of `$NET` you've assigned is not a network in the data folder, the container will still build but will not
+actually including any network data and may not work (a fix is in the works)*
+
 
 replace `BioGRID` above with a valid newtork name ( see )
 etc.  
@@ -131,7 +150,7 @@ For example I've added the /tmp folder on my computer to settings in docker desk
 The folder inside the container can be anything, for example `/tmp/gp` In your terminal/shell, run the sample script inside docker as follows : 
 
 ```
-docker run -v /tmp/gp:/tmp/gp -e OUTDIR=/tmp/gp geneplexus:latest-string python sample_run.py
+docker run -v /tmp/gp:/tmp/gp -e OUTDIR=/tmp/gp -e FEATURES=Embedding geneplexus:BioGRID python sample_run.py
 ```
 
 Then inspect the Geneplexus output files on your computer's folder /tmp/gp
@@ -147,7 +166,7 @@ docker run -v /tmp/gp:/tmp/gp \
 
 ### shell: 
 
-`docker run -it --rm geneplexus:latest-string`
+`docker run -it --rm geneplexus:latest-STRING`
 
    - replace the tag 'latest-string' with the tag for the network you want to use
    - this will start a Python console that you can `import geneplexus` and use as you.   
