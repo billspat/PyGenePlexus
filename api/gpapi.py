@@ -1,26 +1,9 @@
 # gpapi.py : http interface to geneplexus
-# this simply wraps fast api around the main gp data pipeline
 # version 1 PSB, 
 #  - requires all data files to be present as data files are checked at startup
 #  - allows running with any network (not tied to one network or the other)
 #  - runs GP in foreground so response is not given until GP is complete
 
-## to run this server use
-# cd to this directory (currently a subdir of main dir)
-# export FILE_LOC=../.data; export NETWORK=BioGRID; uvicorn gpapi:app --reload
-# using fastapi to test execute won't work as output is too large (3.5M)
-
-# to test the output try
-# curl -X 'POST' \
-#   'http://127.0.0.1:8000/run/' -H 'accept: application/json' \
-#   -H 'Content-Type: application/json' \
-#   -d '{
-#   "net_type": "BioGRID", "features": "Embedding",   "gsc": "GO",   "geneset": [
-#     "ARL6","BBS1","BBS10","BBS12","BBS2","BBS4","BBS5","BBS7","BBS9","CCDC28B","CEP290","KIF7","MKKS","MKS1","TRIM32","TTC8","WDPCP"
-#   ]
-# }' > /tmp/testgpoutput.json
-
-# less /tmp/testgpoutput.json
 
 import os, sys
 import os.path as osp
@@ -30,6 +13,8 @@ import pandas as pd
 
 from typing import Union, Literal
 from pydantic import BaseModel, Field
+from fastapi import FastAPI
+
 from geneplexus import GenePlexus, config, util
 
 ############ types
@@ -189,8 +174,6 @@ class GPRunner():
 
 
 ######### api
-from fastapi import FastAPI
-
 app = FastAPI()
 
 # instantiate class to run the GP pipeline

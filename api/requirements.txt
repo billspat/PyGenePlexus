@@ -1,0 +1,4 @@
+pandas
+typing
+pydantic
+fastapi
