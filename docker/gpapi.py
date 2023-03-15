@@ -5,6 +5,22 @@
 #  - allows running with any network (not tied to one network or the other)
 #  - runs GP in foreground so response is not given until GP is complete
 
+## to run this server use
+# cd to this directory (currently a subdir of main dir)
+# export FILE_LOC=../.data; export NETWORK=BioGRID; uvicorn gpapi:app --reload
+# using fastapi to test execute won't work as output is too large (3.5M)
+
+# to test the output try
+# curl -X 'POST' \
+#   'http://127.0.0.1:8000/run/' -H 'accept: application/json' \
+#   -H 'Content-Type: application/json' \
+#   -d '{
+#   "net_type": "BioGRID", "features": "Embedding",   "gsc": "GO",   "geneset": [
+#     "ARL6","BBS1","BBS10","BBS12","BBS2","BBS4","BBS5","BBS7","BBS9","CCDC28B","CEP290","KIF7","MKKS","MKS1","TRIM32","TTC8","WDPCP"
+#   ]
+# }' > /tmp/testgpoutput.json
+
+# less /tmp/testgpoutput.json
 
 import os, sys
 import os.path as osp
@@ -12,7 +28,7 @@ import pathlib
 
 import pandas as pd
 
-from typing import Union
+from typing import Union, Literal
 from pydantic import BaseModel, Field
 from geneplexus import GenePlexus, config, util
 
@@ -35,22 +51,21 @@ class GPInput(BaseModel):
     gsc: config.GSC_TYPE 
     geneset: GENESET = sample_geneset
 
+# Entrez	Symbol	Name	Probability	Known/Novel	Class-Label	Rank
 class GPprob(BaseModel):
-    " also use for node types"
-    Entrez: int
+    Entrez: str
     Symbol: str
     Name: str
     Probability: float
-    Known_Novel: str = Field(alias="Known/Novel") 
-    Class_Label: str = Field(alias="Class-Label")
+    Known_Novel: str  = Field(alias="Known/Novel") 
+    Class_Label: str  = Field(alias="Class-Label")
     Rank: int
 
 class GPedge(BaseModel):
     Node1:int
     Node2:int
     Weight:int
-    
-    
+
 class GPsimGo(BaseModel):
     # example data: 'GO:0070202', 'regulation of establishment of protein localization to chromosome', '5.021538922627177', '1'      
     ID:str
@@ -58,70 +73,119 @@ class GPsimGo(BaseModel):
     Similarity:float
     Rank:int
 
+class GPsimDis(BaseModel):
+    # example data
+    # 610  DOID:0110123  Bardet-Biedl syndrome 1   17.175403     1
+     ID_: str  = Field(alias = "ID")
+     Name: str
+     Similarity: float
+     Rank: int
+
+class GPconvertOut(BaseModel):
+    """ element of data frame """
+    # example data
+    #  Original ID Entrez ID In BioGRID?
+    # 0        ARL6     84100           Y
+
+    # using question mark causes problem with typing and API, so not using 
+    # it here, and requires the GP 
+    original_id: str = Field(alias = "Original ID")
+    entrez_id: int = Field(alias = "Entrez ID")
+    in_network: Literal['Y', 'N'] = Field(alias = "In Network")
+     
 class GPOutput(BaseModel):
     probs: list[GPprob]
-    sim_go: list[GPsimGo]
     edge_list: list[GPedge]
-    # sim_dis, 
-    # avgps, 
-    # edgelist, 
-    # convert_out, 
-    # positive_genes,
-    # graph?
-    class Config:
-         arbitrary_types_allowed = True
+    sim_go: list[GPsimGo]
+    avgps: list[float] 
+    sim_dis: list[GPsimDis]
+    convert_out: list[GPconvertOut]
+    positive_genes: int
+
 
 
 ####### functionality  
+
+
+def all_data_files_present(file_loc:str)->bool:
+    """validate presence of data files in folder"""
+    #TODO add network param and only look for common files and net-specific files
+
+    if not os.path.exists(file_loc):
+        return False
+
+    for datafile in util.get_all_filenames():
+        if not(os.path.exists(os.path.join(file_loc,datafile))):
+            return False
+
+    return True
+
 class GPRunner():
     """ class to run GP, collect outputs and create graph structure"""
-    @classmethod
-    def all_data_files_present(cls,file_loc:str)->bool:
-        """validate presence of data files in folder"""
-    
-        if not os.path.exists(file_loc):
-            return False
-    
-        for datafile in util.get_all_filenames():
-            if not(os.path.exists(os.path.join(file_loc,datafile))):
-                return False
-    
-        return True
-    
+
     def __init__(self,file_loc:str, net_type:config.NET_TYPE):
         
-        # validate backend data
-        if not(GPRunner.all_data_files_present(file_loc)):
-            raise Exception(f"backend data path not found or not complete in {file_loc}")
+        self.status = ""
+        self.set_status("validating backend data")
+        # # validate backend data
+        # if not(all_data_files_present(file_loc)):
+        #     raise Exception(f"backend data path not found or not complete in {file_loc}")
         
         self.file_loc = file_loc
         self.net_type = net_type
         
+
+    def set_status(self,status_msg:str):
+        self.status = status_msg
+        print(status_msg) 
+
     def run(self,gpinput:GPInput) -> GPOutput:
-        # if no net_type is sent, use class property
+        """run the whole GP pipeline.  Alter outputs to make them API/JSON friendly"""
+        
+        # if no net_type is sent, use class property to set it 
+        if not gpinput.net_type:
+            gpinput.net_type = self.net_type
+        self.set_status(status_msg=f"starting GP with {net_type}")
+        
         gp = GenePlexus(self.file_loc, 
-                        gpinput.net_type or self.net_type, 
+                        gpinput.net_type, 
                         gpinput.features, 
                         gpinput.gsc
                         )
         
         # load genes on separate process for profiling and debugging
+        self.set_status(status_msg=f"loading geneset")
         gp.load_genes(gpinput.geneset)
-        mdl_weights, df_probs, avgps = gp.fit_and_predict()
-        df_sim_go, df_sim_dis, weights_go, weights_dis = gp.make_sim_dfs()
-        df_edgelist, isolated_genes, df_edge_sym, isolated_genes_sym = gp.make_small_edgelist()
-        df_convert_out, positive_genes = gp.alter_validation_df()
+        
+        self.set_status(status_msg=f"loaded {len(gpinput.geneset)} genes")
+        
+        # GP pipeline
+        self.set_status(status_msg=f"calculating model weights")
 
-        return(GPOutput(probs=df_probs.to_dict('records'), 
-                        sim_go = df_sim_go.to_dict('records'), 
-                        edge_list=df_edgelist.to_dict('records'),
-                        # sim_dis, 
-                        # avgps, 
-                        # df_convert_out, 
-                        # positive_genes,
-                        # graph = make_graph(df_edgelist, df_probs)
-                        )
-        )
+        mdl_weights, df_probs, avgps = gp.fit_and_predict()
+        self.set_status(status_msg=f"make_sim_dfs")
+        df_sim_go, df_sim_dis, weights_go, weights_dis = gp.make_sim_dfs()
+        self.set_status(status_msg=f"make edgelist")
+
+        df_edgelist, isolated_genes, df_edge_sym, isolated_genes_sym = gp.make_small_edgelist()
+        self.set_status(status_msg=f"make gene list")
+        df_convert_out, positive_genes = gp.alter_validation_df()
+        
+        # convert data frames to dictionaries for type checking and 
+        # fix column names as needed to make it api/JSON friendly        
+        self.set_status(status_msg=f"preparing output")
+        df_convert_out.columns = ["Original ID","Entrez ID","In Network"]
+
+        return(GPOutput(
+                    probs=df_probs.to_dict('records'),
+                    sim_go = df_sim_go.to_dict('records'), 
+                    edge_list=df_edgelist.to_dict('records'),
+                    sim_dis = df_sim_dis.to_dict('records'),
+                    avgps = avgps, 
+                    convert_out = df_convert_out.to_dict('records'),
+                    positive_genes = positive_genes
+                    )
+                )
 
 
 ######### api
@@ -130,9 +194,12 @@ from fastapi import FastAPI
 app = FastAPI()
 
 # instantiate class to run the GP pipeline
-# doing this here limits the network to one type for the entire run
+# TODO remove the defaults here and deal with no network set (e.g. not network specific)
 net_type = os.getenv('NETWORK') or 'BioGRID'
 file_loc = os.getenv('FILE_LOC') or '../.data'
+# TODO data check
+
+all_data_files_present(file_loc)
 
 gprunner = GPRunner(file_loc, net_type)
 
