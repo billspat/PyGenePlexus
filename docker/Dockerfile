@@ -1,9 +1,17 @@
 FROM python:3.10-bullseye
-# FROM continuumio/miniconda3:latest
 
-# assumes all data needed is downloaded to the .data folder in this repo
 
-# RUN mkdir PyGenePlexus
+# Configuration for Cloud environment
+# will flush print buffers immediately, good if system crashes
+# see https://stackoverflow.com/questions/60828641/simplest-way-to-perform-logging-from-google-cloud-RUN
+ENV PYTHONUNBUFFERED True
+
+# docker build arguments - set these at build time
+# the location of the GP backend data on this computer to be copied into this container
+# default assumes a subfolder of current dir named .data 
+ARG DATA_FOLDER=.data
+# the name of GP gene network matching the case of the files (eg. 'BioGRID')
+# the default '*' is all networks and _may_ work but may have issues at run time
 ARG NETWORK_NAME=*
 ENV NETWORK=${NETWORK_NAME}
 #ALL_NETWORKS = ["BioGRID", "STRING", "STRING-EXP", "GIANT-TN"]
@@ -36,14 +44,14 @@ RUN pip install -r api/requirements.txt && pip install ${code_dir}
 # this copies just the data files for the network ARG
 # if none sent, use the * glob character which should copy all of them
 RUN mkdir $FILE_LOC
-COPY .data/*_${NETWORK_NAME}_* $FILE_LOC
-COPY .data/*_${NETWORK_NAME}.txt $FILE_LOC
-COPY .data/*_${NETWORK_NAME}.npy $FILE_LOC
-COPY .data/*_${NETWORK_NAME}.edg $FILE_LOC
-COPY .data/IDconversion* $FILE_LOC
-COPY .data/GSCOriginal_* $FILE_LOC
+COPY ${DATA_FOLDER}/*_${NETWORK_NAME}_* $FILE_LOC
+COPY ${DATA_FOLDER}/*_${NETWORK_NAME}.txt $FILE_LOC
+COPY ${DATA_FOLDER}/*_${NETWORK_NAME}.npy $FILE_LOC
+COPY ${DATA_FOLDER}/*_${NETWORK_NAME}.edg $FILE_LOC
+COPY ${DATA_FOLDER}/IDconversion* $FILE_LOC
+COPY ${DATA_FOLDER}/GSCOriginal_* $FILE_LOC
+COPY ${DATA_FOLDER}/NodeOrder_* $FILE_LOC
 
-COPY .data/NodeOrder_* $FILE_LOC
 COPY example example
 COPY docker/sample_run.py .
 EXPOSE 8000

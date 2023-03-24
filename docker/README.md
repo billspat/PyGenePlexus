@@ -72,6 +72,12 @@ From the root directory (not the docker directory), issue this command
 
 `docker build -f docker/Dockerfile -t geneplexus:latest .
 
+This will use the data folder `.data` and build for all networks. 
+
+To set a custom folder for the backend data, use the `DATA_FOLDER` [build argument](https://docs.docker.com/engine/reference/commandline/build/#build-arg)
+
+`docker build --build-arg DATA_FOLDER=/path/to/data -f docker/Dockerfile -t geneplexus:latest .`
+
 Note if you are on a new "Apple Silicon" Mac or other ARM based system, using default build will create an 'arm' 
 architecture image which may not run on the cloud or other PCs.    For use on the machine on which you build this is fine.  However, 
 if you want to build images for use by others or use with cloud services, you may need to build multiple 'platforms.'
@@ -81,8 +87,8 @@ This command may build those and push to docker hub (requires an account on dock
 ```
 DOCKERUSER=<your dockerhub user account>
 docker login -u $DOCKERUSER
-export NET=BioGRID # set the network you want to use
-docker buildx build  --platform linux/amd64,linux/arm64/v8  --build-arg NETWORK_NAME=$NET -f docker/Dockerfile -t $DOCKERUSER/geneplexus:$NET --push .
+export NETWORK_NAME=BioGRID # set the network you want to use
+docker buildx build  --platform linux/amd64,linux/arm64/v8  --build-arg NETWORK_NAME=$NETWORK_NAME -f docker/Dockerfile -t $DOCKERUSER/geneplexus:$NET --push .
 ```
 
 See https://docs.docker.com/build/building/multi-platform/ for building an image that can run on both Apple CPUs and the majority of other Intel-based computers when using an Apple CPU mac.   You may need to create a new build node and then use something like this to create and push
