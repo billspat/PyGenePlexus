@@ -113,9 +113,9 @@ etc.
 To build docker images for all networks supported by PyGenePlexus, use the following shell script.  It assumes that you have a valid python along with PyGenePlexus installed.    Note this will take a while to copy the large backend data into the docker image
 
 ```zsh
-for NET in `python -c "import geneplexus; print(' '.join(geneplexus.config.ALL_NETWORKS))"`
+for NETWORK in `python -c "import geneplexus; print(' '.join(geneplexus.config.ALL_NETWORKS))"`
 do
-    buildcmd="docker build --build-arg NETWORK_NAME=$NET -f docker/Dockerfile -t geneplexus:latest-$NET ."
+    buildcmd="docker build --build-arg NETWORK_NAME=$NETWORK -f docker/Dockerfile -t geneplexus:$NETWORK ."
     echo $buildcmd
 done
 ```
