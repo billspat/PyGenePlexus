@@ -1,0 +1,41 @@
+FROM tiangolo/uvicorn-gunicorn:python3.11
+# notes: 
+#  - this image uses a multi-work gunicorn+uvicorn designed for productions use
+#  - this is an amd64 image only and will be _very_ slow on apple silicon
+
+ARG NETWORK_NAME=*
+ENV NETWORK=${NETWORK_NAME}
+ENV FILE_LOC=.data
+
+# 20 minute timeout for gunicorn webserver to accommodate very large networks
+ENV GRACEFUL_TIMEOUT=1200
+ENV TIMEOUT=1200
+
+# copy code needed, and install local package
+# COPY . PyGenePlexus
+ENV code_dir=/tmp/PyGenePlexus
+RUN mkdir -p ${code_dir}
+COPY geneplexus ${code_dir}/geneplexus
+COPY pyproject.toml ${code_dir}
+COPY setup.cfg ${code_dir}
+COPY setup.py ${code_dir}
+COPY tox.ini ${code_dir}
+COPY MANIFEST.in ${code_dir}
+COPY test ${code_dir}
+COPY requirements-dev.txt ${code_dir}
+COPY api/requirements.txt /tmp/requirements.txt
+RUN pip install ${code_dir} && \
+    pip install --no-cache-dir -r /tmp/requirements.txt && \
+    mkdir .data
+
+COPY .data/*_${NETWORK_NAME}_* $FILE_LOC
+COPY .data/*_${NETWORK_NAME}.txt $FILE_LOC
+COPY .data/*_${NETWORK_NAME}.npy $FILE_LOC
+COPY .data/*_${NETWORK_NAME}.edg $FILE_LOC
+COPY .data/IDconversion* $FILE_LOC
+COPY .data/GSCOriginal_* $FILE_LOC
+COPY .data/NodeOrder_* $FILE_LOC
+# the parent image from tiangolo assumes app is named main.py
+COPY ./api/gpapi.py main.py
+
+# CMD and/or ENTRYPOINT are covered by parent image
