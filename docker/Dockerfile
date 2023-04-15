@@ -1,5 +1,7 @@
 FROM python:3.10-bullseye
 
+# PyGenePlexus Dockerfile
+# container to run PyGeneplexus for specific network from command line
 
 # Configuration for Cloud environment
 # will flush print buffers immediately, good if system crashes
@@ -18,7 +20,7 @@ ENV NETWORK=${NETWORK_NAME}
 
 
 # copy code needed, and install local package
-# COPY . PyGenePlexus
+# COPY . PyGenePlexus # previous command
 ENV code_dir=/tmp/PyGenePlexus
 RUN mkdir -p ${code_dir}
 COPY geneplexus ${code_dir}/geneplexus
@@ -33,13 +35,16 @@ COPY requirements-dev.txt ${code_dir}
 
 # create a working folder and copy useable code in there
 ENV APPDIR=/geneplexus
+# FILE_LOC is used in places in the PyGenePlexus codebase to indicate data folder 
 ENV FILE_LOC=${APPDIR}/.data
 WORKDIR ${APPDIR}
-COPY api api
 
-# COPY api/requirements.txt api-requirements.txt
-RUN pip install -r api/requirements.txt && pip install ${code_dir} 
-# && pip install -r ${code_dir}/requirements-dev.txt
+# note, this image does not use the API, only runs PyGP 
+
+# note, this image does not use the API, only runs PyGP 
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt &&  pip install ${code_dir} \
+    && pip install -r ${code_dir}/requirements-dev.txt
 
 # this copies just the data files for the network ARG
 # if none sent, use the * glob character which should copy all of them
@@ -54,5 +59,6 @@ COPY ${DATA_FOLDER}/NodeOrder_* $FILE_LOC
 
 COPY example example
 COPY docker/sample_run.py .
-EXPOSE 8000
-ENTRYPOINT ["uvicorn", "--host", "0.0.0.0", "--port", "8000", "--app-dir", "api", "gpapi:app"]
+
+ENTRYPOINT ["python"]
+CMD ["sample_run.py"]
