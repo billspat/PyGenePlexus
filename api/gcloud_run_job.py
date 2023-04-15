@@ -37,8 +37,6 @@ def create_container(project_id, image_name,env_vars={}):
          'env' : job_env
          })
     
-    # 
-    # 
     return(job_container)
 
 
@@ -118,7 +116,7 @@ def run_geneplexus_job(gp_network="BioGRID", location="us-west2"):
     job_id = f"gp-{gp_network}-{randstr}"
     
     env_vars = {
-        'FEATURES': "Embedding"
+        'FEATURES': "Embedding",
         'GSC': "DisGeNet"
     
     }
@@ -132,9 +130,5 @@ def run_geneplexus_job(gp_network="BioGRID", location="us-west2"):
         print(run_response)
     else: 
         print("job {job_id} does not say ready")
-        
-        
-if __name__ == "__main__":
-    run_fake_logger_job()
 
 
