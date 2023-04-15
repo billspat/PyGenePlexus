@@ -90,6 +90,17 @@ docker login -u $DOCKERUSER
 export NETWORK_NAME=BioGRID # set the network you want to use
 docker buildx build  --platform linux/amd64,linux/arm64/v8  --build-arg NETWORK_NAME=$NETWORK_NAME -f docker/Dockerfile -t $DOCKERUSER/geneplexus:$NET --push .
 ```
+or for another working example that builds for X86 only which can run in google cloud
+
+```
+# this worked for a local build
+
+docker buildx build  --platform linux/amd64  \
+    --build-arg NETWORK_NAME=$NETWORK_NAME \
+    -f docker/Dockerfile -t geneplexus:$NETWORK_NAME --load .
+export GCP_PROJECT=$(gcloud config get-value project)
+docker tag geneplexus:$NETWORK_NAME gcr.io/$GCP_PROJECT/geneplexus:$NETWORK_NAME
+```
 
 See https://docs.docker.com/build/building/multi-platform/ for building an image that can run on both Apple CPUs and the majority of other Intel-based computers when using an Apple CPU mac.   You may need to create a new build node and then use something like this to create and push
 
@@ -166,18 +177,32 @@ To adjust the other parameters, use something similar to the following:
 ```
 docker run -v /tmp/gp:/tmp/gp \
     -e OUTDIR=/tmp/gp -e FEATURES=Adjacency -e GSC=GO \
-    geneplexus:latest-string python sample_run.py
+    geneplexus:BioGRID python sample_run.py
 ```
 
 
 ### shell: 
 
-`docker run -it --rm geneplexus:latest-STRING`
+`docker run -it --rm geneplexus:STRING`
 
-   - replace the tag 'latest-string' with the tag for the network you want to use
+   - replace the tag 'STRING' with the tag for the network you want to use
    - this will start a Python console that you can `import geneplexus` and use as you.   
    - this is really valuable just for testing
    - the `--rm` option above is to delete the container after exiting, otherwise Docker will 
       keep many anonymous containers around. 
    - type `exit()` at the Python prompt to exit and delete the container (but not the image) 
    - to save outputs, you'll need to mount a folder as described above
+
+
+## Using Images in Google Cloud
+
+One could build images using Google Cloud Build, or build and push to a GCP container repository. 
+
+Note when building using cloud build, anything in `.gitignore` is ignored, or in a file `.cloudignorefile` if exists  
+It does not look at dockerignore.   So the `.data` directory that is in .gitignore is not included and the build will fail. 
+
+Again it's unorthodox to include data but this is an attempt to manage memory usage for scaling. 
+
+The file `cloudbuild.yaml` is a basic start to use with  `gcloud builds submit --config cloudbuild.yaml`
+
+see the shell script gp_build_fns.sh for code to build, push and run GP docker images. 
