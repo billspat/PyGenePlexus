@@ -20,7 +20,11 @@
 # 
 
 # array of networks as of spring 23 that GP uses
-export GP_NETWORKS=("BioGRID" "STRING" "STRING-EXP" "GIANT-TN")
+
+VIRTUALENV=.venv
+source $VIRTUALENV/bin/activate
+export GP_NETWORKS=`python -c "import geneplexus; print(' '.join(geneplexus.config.ALL_NETWORKS))"`
+# export GP_NETWORKS=("BioGRID" "STRING" "STRING-EXP" "GIANT-TN")
 # can get this list using python, importing gp and printing this list
 
 gp_build() {
@@ -130,4 +134,12 @@ gp_gcp_run() {
 
         gcloud run jobs list --region $GCLOUD_REGION
         gcloud run jobs describe --region $GCLOUD_REGION $GCP_JOBNAME
+}
+
+create_credentials () {
+    # the goal of this script is to create a credentials file that can be used by the GP runner to read/write 
+    # to cloud storage using a service account
+    # it requires a service account to be predefined.   
+    
+
 }
