@@ -59,6 +59,6 @@ COPY ${DATA_FOLDER}/NodeOrder_* $FILE_LOC
 
 COPY example example
 COPY docker/sample_run.py .
-
+COPY docker/run_gp.py .
 ENTRYPOINT ["python"]
 CMD ["sample_run.py"]
