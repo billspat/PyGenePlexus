@@ -167,7 +167,7 @@ For example I've added the /tmp folder on my computer to settings in docker desk
 The folder inside the container can be anything, for example `/tmp/gp` In your terminal/shell, run the sample script inside docker as follows : 
 
 ```
-docker run -v /tmp/gp:/tmp/gp -e OUTDIR=/tmp/gp -e FEATURES=Embedding geneplexus:BioGRID python sample_run.py
+docker run -v /tmp/gp:/tmp/gp -e OUTDIR=/tmp/gp -e FEATURES=Embedding geneplexus:BioGRID
 ```
 
 Then inspect the Geneplexus output files on your computer's folder /tmp/gp
@@ -177,7 +177,7 @@ To adjust the other parameters, use something similar to the following:
 ```
 docker run -v /tmp/gp:/tmp/gp \
     -e OUTDIR=/tmp/gp -e FEATURES=Adjacency -e GSC=GO \
-    geneplexus:BioGRID python sample_run.py
+    geneplexus:BioGRID
 ```
 
 
