@@ -178,8 +178,8 @@ app = FastAPI()
 
 # instantiate class to run the GP pipeline
 # TODO remove the defaults here and deal with no network set (e.g. not network specific)
-net_type = os.getenv('NETWORK') or 'BioGRID'
-file_loc = os.getenv('FILE_LOC') or '../.data'
+net_type = os.getenv('NETWORK','BioGRID')
+file_loc = os.getenv('FILE_LOC', '../.data')
 # TODO data check
 
 all_data_files_present(file_loc)
@@ -189,7 +189,8 @@ gprunner = GPRunner(file_loc, net_type)
 @app.get("/")
 async def root():
     """simple response to confirm server is running"""
-    return {"message": "GenePlexus App"}
+    app_name = os.getenv('APPNAME', 'no name app')
+    return {"message": app_name}
  
 @app.post("/check/") 
 async def check(gpinput: GPInput) -> GPInput:
