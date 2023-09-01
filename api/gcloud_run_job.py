@@ -18,8 +18,7 @@ from google.protobuf.duration_pb2 import Duration
 def create_container(project_id, image_name,env_vars={}):
     """ create container object for job to run, including particulars for env vars and cmd """
     # container is where you set command options and env variables
-    # https://cloud.google.com/python/docs/reference/run/latest/google.cloud.run_v2.types.Container
-
+    
     # this uses the soon-to-be 
     image_url = f"gcr.io/{project_id}/{image_name}"
     container_name = f"{image_name}-container"
@@ -31,12 +30,18 @@ def create_container(project_id, image_name,env_vars={}):
         ev = run_v2.EnvVar({'name':name, 'value':str(env_vars[name])})
         job_env.append(ev)
 
+    # https://cloud.google.com/python/docs/reference/run/latest/google.cloud.run_v2.types.Container
     job_container = run_v2.Container(
         {'name':container_name, 
          'image' : image_url,
-         'env' : job_env
+         'env' : job_env,
+         # https://cloud.google.com/python/docs/reference/run/latest/google.cloud.run_v2.types.ResourceRequirements
+         'resources' : run_v2.ResourceRequirements(limits = {'CPU':'4','memory':'8G'} )
          })
     
+    rr = run_v2.ResourceRequirements({
+        limits: {}
+    })
     return(job_container)
 
 
