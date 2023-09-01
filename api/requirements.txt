@@ -1,5 +1,7 @@
+geneplexus @ git+https://github.com/krishnanlab/PyGenePlexus@main
+#dependabot/pip/numpy-1.24.2
 pandas
 typing
 pydantic
 fastapi
-uvicorn
+uvicorn[standard]
